@@ -8,13 +8,34 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
+// Auto-fix: Créer la colonne cover_url si elle n'existe pas (évite l'erreur SQL)
+$check_col = mysqli_query($conn, "SHOW COLUMNS FROM books LIKE 'cover_url'");
+if (mysqli_num_rows($check_col) == 0) {
+    mysqli_query($conn, "ALTER TABLE books ADD COLUMN cover_url VARCHAR(500) DEFAULT 'https://placehold.co/300x450?text=Livre'");
+}
+
 // Add Book Logic
 if (isset($_POST['add_book'])) {
     $title = mysqli_real_escape_string($conn, $_POST['title']);
     $author = mysqli_real_escape_string($conn, $_POST['author']);
     $category = mysqli_real_escape_string($conn, $_POST['category']);
     $stock = (int)$_POST['stock'];
-    $cover_url = mysqli_real_escape_string($conn, $_POST['cover_url']);
+    
+    // Gestion Upload Image
+    $cover_url = "https://placehold.co/300x450?text=Livre"; // Image par défaut
+    
+    if (isset($_FILES['cover_file']) && $_FILES['cover_file']['error'] == 0) {
+        $upload_dir = "../uploads/";
+        if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+        $ext = strtolower(pathinfo($_FILES['cover_file']['name'], PATHINFO_EXTENSION));
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+            $filename = uniqid("book_", true) . "." . $ext;
+            move_uploaded_file($_FILES['cover_file']['tmp_name'], $upload_dir . $filename);
+            $cover_url = "../uploads/" . $filename;
+        }
+    } elseif (!empty($_POST['cover_url'])) {
+        $cover_url = mysqli_real_escape_string($conn, $_POST['cover_url']);
+    }
 
     mysqli_query($conn, "INSERT INTO books (title, author, category, stock, cover_url) VALUES ('$title', '$author', '$category', $stock, '$cover_url')");
 }
@@ -110,12 +131,13 @@ if (isset($_POST['add_book'])) {
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3"><h5 class="m-0 fw-bold text-primary"><i class="fas fa-plus-circle"></i> Ajouter un nouveau livre</h5></div>
             <div class="card-body">
-                <form method="POST" class="row g-3">
+                <form method="POST" class="row g-3" enctype="multipart/form-data">
                     <div class="col-md-3"><label class="form-label">Titre</label><input type="text" name="title" class="form-control" required></div>
                     <div class="col-md-3"><label class="form-label">Auteur</label><input type="text" name="author" class="form-control" required></div>
                     <div class="col-md-2"><label class="form-label">Catégorie</label><input type="text" name="category" class="form-control" required></div>
                     <div class="col-md-2"><label class="form-label">Stock</label><input type="number" name="stock" class="form-control" required></div>
-                    <div class="col-md-2"><label class="form-label">Image URL</label><input type="text" name="cover_url" class="form-control" placeholder="http://..."></div>
+                    <!-- Champ Image modifié pour accepter Fichier -->
+                    <div class="col-md-2"><label class="form-label">Image (Fichier)</label><input type="file" name="cover_file" class="form-control" accept="image/*"></div>
                     <div class="col-12 text-end"><button type="submit" name="add_book" class="btn btn-success px-4"><i class="fas fa-save"></i> Enregistrer</button></div>
                 </form>
             </div>
@@ -138,7 +160,10 @@ if (isset($_POST['add_book'])) {
                                 <td><?php echo $row['author']; ?></td>
                                 <td><span class="badge bg-info text-dark"><?php echo $row['category']; ?></span></td>
                                 <td><span class="badge <?php echo $row['stock'] > 0 ? 'bg-success' : 'bg-danger'; ?>"><?php echo $row['stock']; ?> dispo</span></td>
-                                <td><a href="delete_book.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer ce livre ?')"><i class="fas fa-trash"></i></a></td>
+                                <td>
+                                    <a href="edit_book.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-primary me-1"><i class="fas fa-edit"></i></a>
+                                    <a href="delete_book.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer ce livre ?')"><i class="fas fa-trash"></i></a>
+                                </td>
                             </tr>
                             <?php endwhile; ?>
                         </tbody>
