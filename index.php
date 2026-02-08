@@ -1,89 +1,123 @@
-<?php 
-// Nous incluons la connexion ici, mais la fermons immédiatement, car 
-// la connexion sera gérée par le script AJAX (fetch_books.php) pour chaque requête.
-include 'db_connect.php'; 
-$conn->close(); 
+<?php
+ob_start(); // Ajout pour éviter les erreurs de header
+session_start();
+require 'config/db.php';
+
+$error = "";
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $password = $_POST['password'];
+
+    $sql = "SELECT * FROM users WHERE email = '$email'";
+    $result = mysqli_query($conn, $sql);
+    $user = mysqli_fetch_assoc($result);
+
+    if ($user && password_verify($password, $user['password'])) {
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['role'] = $user['role'];
+        $_SESSION['name'] = $user['name'];
+
+        if ($user['role'] == 'admin') {
+            header("Location: admin/dashboard.php");
+        } else {
+            header("Location: user/dashboard.php");
+        }
+        exit();
+    } else {
+        $error = "Email ou mot de passe incorrect !";
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Gestion de Bibliothèque - Catalogue</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Library - V2 (Updated)</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Styles de base - Idéalement dans un fichier style.css */
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f9; }
-        .header { background-color: #3f51b5; color: white; padding: 20px; text-align: center; }
-        .container { width: 80%; margin: 20px auto; }
-        .navbar { background-color: #303f9f; padding: 10px 0; text-align: center; }
-        .navbar a { color: white; padding: 10px 15px; text-decoration: none; }
-        #search-box { width: 100%; padding: 10px; margin-bottom: 20px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #c5cae9; }
-        .loading { text-align: center; padding: 20px; color: #555; }
-        .disponible { color: green; font-weight: bold; }
-        .indisponible { color: red; }
+        /* Style pour le Slider plein écran */
+        .carousel-item { height: 100vh; min-height: 300px; background: no-repeat center center scroll; -webkit-background-size: cover; -moz-background-size: cover; -o-background-size: cover; background-size: cover; }
+        
+        /* Style pour le formulaire Login flottant */
+        .login-overlay { position: absolute; top: 50%; right: 10%; transform: translateY(-50%); width: 380px; z-index: 1000; }
+        .card-glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.2); }
+        
+        /* Responsive: Sur mobile, le login prend toute la largeur */
+        @media (max-width: 768px) { .login-overlay { position: relative; width: 100%; top: 0; right: 0; transform: none; padding: 20px; } .carousel-item { height: 40vh; } }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>📚 Catalogue des Livres</h1>
-</div>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: rgba(0,0,0,0.6);">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="#">📚 SmartLib</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link active" href="#">Accueil</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Livres</a></li>
+            <li class="nav-item"><a class="nav-link" href="register.php">Inscription</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
 
-<div class="navbar">
-    <a href="index.php">Catalogue</a>
-    <a href="register.php">S'inscrire</a>
-    <a href="login.php">Connexion</a>
-</div>
-
-<div class="container">
-    <h2>Rechercher un Livre</h2>
-    
-    <input type="text" id="search-box" placeholder="Entrez le titre, l'auteur ou l'ISBN..." onkeyup="fetchBooks()">
-
-    <div id="book-results">
-        <p class="loading">Chargement des livres...</p>
+    <!-- Slider (Carousel) -->
+    <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel">
+      <div class="carousel-inner">
+        <!-- Slide 1 -->
+        <div class="carousel-item active" style="background-image: url('https://images.unsplash.com/photo-1507842217153-e212234b6605?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')">
+          <div class="carousel-caption d-none d-md-block text-start" style="bottom: 100px; left: 10%;">
+            <h1 class="display-3 fw-bold">Bienvenue à SmartLib</h1>
+            <p class="lead fs-4">Gérez vos emprunts et découvrez des milliers de livres.</p>
+          </div>
+        </div>
+        <!-- Slide 2 -->
+        <div class="carousel-item" style="background-image: url('https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')">
+          <div class="carousel-caption d-none d-md-block text-start" style="bottom: 100px; left: 10%;">
+            <h1 class="display-3 fw-bold">Un espace de savoir</h1>
+            <p class="lead fs-4">Accédez à une collection riche et variée.</p>
+          </div>
+        </div>
+      </div>
     </div>
-</div>
 
-<script>
-/**
- * Fonction JavaScript pour appeler le script PHP (fetch_books.php) via AJAX.
- */
-function fetchBooks() {
-    // 1. Récupérer la valeur de recherche
-    let search_query = document.getElementById('search-box').value;
-    let results_container = document.getElementById('book-results');
-    
-    // Afficher un message de chargement temporaire
-    results_container.innerHTML = '<p class="loading">Recherche en cours...</p>';
+    <!-- Login Form Overlay -->
+    <div class="login-overlay">
+        <div class="card card-glass shadow-lg p-4">
+            <div class="text-center mb-3">
+                <h3 class="fw-bold text-primary">Connexion</h3>
+                <small class="text-muted">Accédez à votre espace</small>
+            </div>
+            
+            <?php if($error) echo "<div class='alert alert-danger py-2'>$error</div>"; ?>
+            
+            <!-- Admin Hint pour toi -->
+            <div class="alert alert-info py-1 mb-3" style="font-size: 0.85rem;">
+                <strong>Admin:</strong> admin@library.com / admin123
+            </div>
 
-    // 2. Créer une nouvelle requête HTTP
-    const xhr = new XMLHttpRequest();
-    
-    // 3. Configurer la requête (méthode GET, URL du script PHP, asynchrone)
-    // encodeURIComponent assure que les caractères spéciaux dans la recherche sont gérés correctement
-    xhr.open('GET', 'fetch_books.php?query=' + encodeURIComponent(search_query), true);
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="nom@exemple.com" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Mot de passe</label>
+                    <input type="password" name="password" class="form-control" placeholder="******" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 btn-lg">Se connecter</button>
+            </form>
+            <div class="text-center mt-3">
+                <p class="mb-0">Pas de compte ? <a href="register.php" class="fw-bold">Créer un compte</a></p>
+            </div>
+        </div>
+    </div>
 
-    // 4. Définir la fonction à exécuter lorsque la réponse est reçue
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            // Si la requête réussit (code 200), injecter la réponse HTML dans la page
-            results_container.innerHTML = xhr.responseText;
-        } else {
-            // Gérer les erreurs de connexion
-            results_container.innerHTML = '<p style="color:red; text-align: center;">Erreur serveur lors du chargement des données. Code: ' + xhr.status + '</p>';
-        }
-    };
-
-    // 5. Envoyer la requête
-    xhr.send();
-}
-
-// Lancer la recherche au chargement de la page pour afficher tous les livres initialement
-window.onload = fetchBooks;
-</script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

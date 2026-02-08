@@ -1,64 +1,54 @@
 <?php
-session_start();
-include 'db_connect.php';
-
-$message = '';
-
+require 'config/db.php';
+$msg = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // 1. Récupération des données et échappement des caractères spéciaux
-    $nom = $conn->real_escape_string($_POST['nom']);
-    $prenom = $conn->real_escape_string($_POST['prenom']);
-    $email = $conn->real_escape_string($_POST['email']);
-    $password = $_POST['mot_de_passe'];
-
-    // 2. Hachage du mot de passe (STANDARD DE SÉCURITÉ)
-    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-    // 3. Vérification de l'existence de l'email
-    $check_sql = "SELECT id_utilisateur FROM utilisateurs WHERE email = ?";
-    $stmt = $conn->prepare($check_sql);
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        $message = "Cet email est déjà utilisé. Veuillez vous connecter.";
+    $name = mysqli_real_escape_string($conn, $_POST['name']);
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    
+    // Vérifier si l'email existe déjà
+    $check = mysqli_query($conn, "SELECT id FROM users WHERE email='$email'");
+    if(mysqli_num_rows($check) > 0){
+        $msg = "<div class='alert alert-danger'>Cet email est déjà utilisé.</div>";
     } else {
-        // 4. Insertion du nouvel utilisateur (role='membre' par défaut)
-        $insert_sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role) VALUES (?, ?, ?, ?, 'membre')";
-        $insert_stmt = $conn->prepare($insert_sql);
-        $insert_stmt->bind_param("ssss", $nom, $prenom, $email, $hashed_password);
-
-        if ($insert_stmt->execute()) {
-            $message = "Inscription réussie ! Vous pouvez maintenant vous connecter.";
+        $sql = "INSERT INTO users (name, email, password, role) VALUES ('$name', '$email', '$password', 'user')";
+        if(mysqli_query($conn, $sql)){
+            $msg = "<div class='alert alert-success'>Compte créé avec succès ! <a href='index.php' class='fw-bold'>Se connecter</a></div>";
         } else {
-            $message = "Erreur lors de l'inscription : " . $conn->error;
+            $msg = "<div class='alert alert-danger'>Erreur lors de l'inscription.</div>";
         }
     }
-    $stmt->close();
-    $insert_stmt->close();
 }
-$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Inscription Membre</title>
-    </head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - Smart Library</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .card { border-radius: 15px; border: none; }
+    </style>
+</head>
 <body>
-    <div class="header"><h1>📝 Inscription Membre</h1></div>
     <div class="container">
-        <p style="color:blue;"><?php echo $message; ?></p>
-        
-        <form method="POST" action="register.php">
-            <label for="prenom">Prénom:</label><br><input type="text" name="prenom" required><br><br>
-            <label for="nom">Nom:</label><br><input type="text" name="nom" required><br><br>
-            <label for="email">Email:</label><br><input type="email" name="email" required><br><br>
-            <label for="mot_de_passe">Mot de passe:</label><br><input type="password" name="mot_de_passe" required><br><br>
-            <input type="submit" value="S'inscrire">
-        </form>
-        <p>Déjà un compte ? <a href="login.php">Se connecter</a></p>
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card shadow-lg p-4">
+                    <h3 class="text-center mb-4 fw-bold text-primary">Créer un compte</h3>
+                    <?php echo $msg; ?>
+                    <form method="POST">
+                        <div class="mb-3"><label class="form-label">Nom complet</label><input type="text" name="name" class="form-control" required></div>
+                        <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
+                        <div class="mb-3"><label class="form-label">Mot de passe</label><input type="password" name="password" class="form-control" required></div>
+                        <button type="submit" class="btn btn-success w-100 btn-lg mt-2">S'inscrire</button>
+                    </form>
+                    <p class="text-center mt-3 mb-0">Déjà inscrit ? <a href="index.php">Se connecter</a></p>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 </html>
