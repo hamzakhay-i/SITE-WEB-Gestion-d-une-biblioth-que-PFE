@@ -31,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $category = mysqli_real_escape_string($conn, $_POST['category']);
     $stock = (int)$_POST['stock'];
     $cover_url = mysqli_real_escape_string($conn, $_POST['cover_url']);
+    $pdf_url = isset($book['pdf_url']) ? $book['pdf_url'] : ''; // Garder l'ancien par défaut
 
     // Gestion Upload Image (si une nouvelle image est envoyée)
     if (isset($_FILES['cover_file']) && $_FILES['cover_file']['error'] == 0) {
@@ -47,7 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    $sql = "UPDATE books SET title='$title', author='$author', category='$category', stock=$stock, cover_url='$cover_url' WHERE id=$id";
+    // Gestion Upload PDF
+    if (isset($_FILES['pdf_file']) && $_FILES['pdf_file']['error'] == 0) {
+        $upload_dir = "../uploads/";
+        if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+        
+        $ext = strtolower(pathinfo($_FILES['pdf_file']['name'], PATHINFO_EXTENSION));
+        if ($ext == 'pdf') {
+            $filename = uniqid("ebook_", true) . ".pdf";
+            move_uploaded_file($_FILES['pdf_file']['tmp_name'], $upload_dir . $filename);
+            $pdf_url = "../uploads/" . $filename;
+        }
+    }
+
+    $sql = "UPDATE books SET title='$title', author='$author', category='$category', stock=$stock, cover_url='$cover_url', pdf_url='$pdf_url' WHERE id=$id";
     
     if (mysqli_query($conn, $sql)) {
         $msg = "<div class='alert alert-success'>Livre modifié avec succès ! <a href='dashboard.php'>Retour au dashboard</a></div>";
@@ -86,6 +100,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <div class="mb-3"><label class="form-label">Stock</label><input type="number" name="stock" class="form-control" value="<?php echo $book['stock']; ?>" required></div>
                             <div class="mb-3"><label class="form-label">URL Image (ou laisser tel quel)</label><input type="text" name="cover_url" class="form-control" value="<?php echo htmlspecialchars($book['cover_url']); ?>"></div>
                             <div class="mb-4"><label class="form-label">Ou uploader une nouvelle image</label><input type="file" name="cover_file" class="form-control"></div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Fichier PDF (E-book)</label>
+                                <input type="file" name="pdf_file" class="form-control" accept="application/pdf">
+                                <?php if(!empty($book['pdf_url'])): ?>
+                                    <div class="form-text text-success"><i class="fas fa-check-circle"></i> PDF actuel : <a href="<?php echo $book['pdf_url']; ?>" target="_blank">Voir le fichier</a></div>
+                                <?php endif; ?>
+                            </div>
+
                             <button type="submit" class="btn btn-warning w-100">Enregistrer les modifications</button>
                         </form>
                     </div>

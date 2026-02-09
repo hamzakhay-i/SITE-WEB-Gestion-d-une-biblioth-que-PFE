@@ -13,6 +13,11 @@ $check_col = mysqli_query($conn, "SHOW COLUMNS FROM books LIKE 'cover_url'");
 if (mysqli_num_rows($check_col) == 0) {
     mysqli_query($conn, "ALTER TABLE books ADD COLUMN cover_url VARCHAR(500) DEFAULT 'https://placehold.co/300x450?text=Livre'");
 }
+// Auto-fix: Créer la colonne pdf_url pour les E-books
+$check_pdf = mysqli_query($conn, "SHOW COLUMNS FROM books LIKE 'pdf_url'");
+if (mysqli_num_rows($check_pdf) == 0) {
+    mysqli_query($conn, "ALTER TABLE books ADD COLUMN pdf_url VARCHAR(500) DEFAULT NULL");
+}
 
 // Add Book Logic
 if (isset($_POST['add_book'])) {
@@ -37,7 +42,20 @@ if (isset($_POST['add_book'])) {
         $cover_url = mysqli_real_escape_string($conn, $_POST['cover_url']);
     }
 
-    mysqli_query($conn, "INSERT INTO books (title, author, category, stock, cover_url) VALUES ('$title', '$author', '$category', $stock, '$cover_url')");
+    // Gestion Upload PDF
+    $pdf_url = "";
+    if (isset($_FILES['pdf_file']) && $_FILES['pdf_file']['error'] == 0) {
+        $upload_dir = "../uploads/";
+        if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+        $ext = strtolower(pathinfo($_FILES['pdf_file']['name'], PATHINFO_EXTENSION));
+        if ($ext == 'pdf') {
+            $filename = uniqid("ebook_", true) . ".pdf";
+            move_uploaded_file($_FILES['pdf_file']['tmp_name'], $upload_dir . $filename);
+            $pdf_url = "../uploads/" . $filename;
+        }
+    }
+
+    mysqli_query($conn, "INSERT INTO books (title, author, category, stock, cover_url, pdf_url) VALUES ('$title', '$author', '$category', $stock, '$cover_url', '$pdf_url')");
 }
 
 // Fetch Stats
@@ -60,6 +78,7 @@ if (isset($_POST['add_book'])) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background-color: #f3f4f6; overflow-x: hidden; }
+        [data-bs-theme="dark"] body { background-color: #212529; color: #f8f9fa; }
         .sidebar { min-height: 100vh; background: #2c3e50; color: white; position: fixed; width: 250px; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 15px 20px; display: block; transition: 0.3s; }
         .sidebar a:hover, .sidebar a.active { background: #34495e; color: white; border-left: 4px solid #3498db; padding-left: 25px; }
@@ -83,6 +102,7 @@ if (isset($_POST['add_book'])) {
         <a href="dashboard.php" class="active"><i class="fas fa-th-large me-2"></i> Tableau de bord</a>
         <a href="borrowings.php"><i class="fas fa-hand-holding me-2"></i> Gestion Emprunts</a>
         <a href="../index.php" target="_blank"><i class="fas fa-external-link-alt me-2"></i> Voir le site</a>
+        <button id="darkModeToggle" class="btn btn-outline-light mx-3 mt-3 btn-sm"><i class="fas fa-moon me-2"></i> Mode Sombre</button>
         <div class="mt-auto p-3">
             <a href="../logout.php" class="btn btn-danger w-100 text-white"><i class="fas fa-sign-out-alt me-2"></i> Déconnexion</a>
         </div>
@@ -91,7 +111,7 @@ if (isset($_POST['add_book'])) {
     <!-- Main Content -->
     <div class="main-content">
         <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-4 bg-body p-3 rounded shadow-sm">
             <h4 class="m-0 text-dark">📚 Gestion des Livres</h4>
             <div class="d-flex align-items-center">
                 <span class="me-3 fw-bold text-secondary">Admin</span>
@@ -129,7 +149,7 @@ if (isset($_POST['add_book'])) {
 
         <!-- Add Book Form -->
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3"><h5 class="m-0 fw-bold text-primary"><i class="fas fa-plus-circle"></i> Ajouter un nouveau livre</h5></div>
+            <div class="card-header bg-body py-3"><h5 class="m-0 fw-bold text-primary"><i class="fas fa-plus-circle"></i> Ajouter un nouveau livre</h5></div>
             <div class="card-body">
                 <form method="POST" class="row g-3" enctype="multipart/form-data">
                     <div class="col-md-3"><label class="form-label">Titre</label><input type="text" name="title" class="form-control" required></div>
@@ -138,6 +158,7 @@ if (isset($_POST['add_book'])) {
                     <div class="col-md-2"><label class="form-label">Stock</label><input type="number" name="stock" class="form-control" required></div>
                     <!-- Champ Image modifié pour accepter Fichier -->
                     <div class="col-md-2"><label class="form-label">Image (Fichier)</label><input type="file" name="cover_file" class="form-control" accept="image/*"></div>
+                    <div class="col-md-2"><label class="form-label">E-book (PDF)</label><input type="file" name="pdf_file" class="form-control" accept="application/pdf"></div>
                     <div class="col-12 text-end"><button type="submit" name="add_book" class="btn btn-success px-4"><i class="fas fa-save"></i> Enregistrer</button></div>
                 </form>
             </div>
@@ -180,5 +201,22 @@ if (isset($_POST['add_book'])) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const toggleBtn = document.getElementById('darkModeToggle');
+        const html = document.documentElement;
+        const icon = toggleBtn.querySelector('i');
+        if (localStorage.getItem('theme') === 'dark') {
+            html.setAttribute('data-bs-theme', 'dark');
+            icon.classList.replace('fa-moon', 'fa-sun');
+            toggleBtn.innerHTML = '<i class="fas fa-sun me-2"></i> Mode Clair';
+        }
+        toggleBtn.addEventListener('click', () => {
+            const isDark = html.getAttribute('data-bs-theme') === 'dark';
+            html.setAttribute('data-bs-theme', isDark ? 'light' : 'dark');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+            icon.classList.replace(isDark ? 'fa-sun' : 'fa-moon', isDark ? 'fa-moon' : 'fa-sun');
+            toggleBtn.innerHTML = isDark ? '<i class="fas fa-moon me-2"></i> Mode Sombre' : '<i class="fas fa-sun me-2"></i> Mode Clair';
+        });
+    </script>
 </body>
 </html>
