@@ -101,6 +101,7 @@ if (isset($_POST['add_book'])) {
         </div>
         <a href="dashboard.php" class="active"><i class="fas fa-th-large me-2"></i> Tableau de bord</a>
         <a href="borrowings.php"><i class="fas fa-hand-holding me-2"></i> Gestion Emprunts</a>
+        <a href="stats.php"><i class="fas fa-chart-line me-2"></i> Statistiques</a>
         <a href="../index.php" target="_blank"><i class="fas fa-external-link-alt me-2"></i> Voir le site</a>
         <button id="darkModeToggle" class="btn btn-outline-light mx-3 mt-3 btn-sm"><i class="fas fa-moon me-2"></i> Mode Sombre</button>
         <div class="mt-auto p-3">

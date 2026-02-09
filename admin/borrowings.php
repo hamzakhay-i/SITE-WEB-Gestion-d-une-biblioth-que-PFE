@@ -57,6 +57,7 @@ if (isset($_GET['return_id']) && isset($_GET['book_id'])) {
         </div>
         <a href="dashboard.php"><i class="fas fa-th-large me-2"></i> Tableau de bord</a>
         <a href="borrowings.php" class="active"><i class="fas fa-hand-holding me-2"></i> Gestion Emprunts</a>
+        <a href="stats.php"><i class="fas fa-chart-line me-2"></i> Statistiques</a>
         <a href="../index.php" target="_blank"><i class="fas fa-external-link-alt me-2"></i> Voir le site</a>
         <div class="mt-auto p-3">
             <a href="../logout.php" class="btn btn-danger w-100 text-white"><i class="fas fa-sign-out-alt me-2"></i> Déconnexion</a>
