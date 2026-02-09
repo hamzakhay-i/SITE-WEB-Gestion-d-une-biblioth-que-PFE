@@ -40,11 +40,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Style pour le Slider plein écran */
-        .carousel-item { height: 100vh; min-height: 300px; background: no-repeat center center scroll; -webkit-background-size: cover; -moz-background-size: cover; -o-background-size: cover; background-size: cover; }
+        /* Image de fond fixe pour toute la page */
+        body { background: url('https://images.unsplash.com/photo-1507842217153-e212234b6605?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80') no-repeat center center fixed; -webkit-background-size: cover; -moz-background-size: cover; -o-background-size: cover; background-size: cover; height: 100vh; overflow: hidden; }
         
         /* Style pour le formulaire Login flottant */
         .login-overlay { position: absolute; top: 50%; right: 10%; transform: translateY(-50%); width: 400px; z-index: 1000; }
+        /* Style pour le texte de bienvenue à gauche */
+        .welcome-text { position: absolute; top: 50%; left: 10%; transform: translateY(-50%); color: white; max-width: 500px; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80') no-repeat center center; background-size: cover; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); }
         .card-glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 15px 35px rgba(0,0,0,0.2); overflow: hidden; }
         .form-control { padding: 12px; background: rgba(255,255,255,0.9); border: 1px solid #e0e0e0; }
         .form-control:focus { box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15); border-color: #0d6efd; background: #fff; }
@@ -52,7 +54,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3); }
         
         /* Responsive: Sur mobile, le login prend toute la largeur */
-        @media (max-width: 768px) { .login-overlay { position: relative; width: 100%; top: 0; right: 0; transform: none; padding: 20px; } .carousel-item { height: 40vh; } }
+        @media (max-width: 768px) { .login-overlay { position: relative; width: 100%; top: 0; right: 0; transform: none; padding: 20px; } .welcome-text { position: relative; width: 100%; left: 0; top: 0; transform: none; padding: 100px 20px 20px 20px; text-align: center; } body { overflow: auto; height: auto; min-height: 100vh; } }
     </style>
 </head>
 <body>
@@ -72,24 +74,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       </div>
     </nav>
 
-    <!-- Slider (Carousel) -->
-    <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel">
-      <div class="carousel-inner">
-        <!-- Slide 1 -->
-        <div class="carousel-item active" style="background-image: url('https://images.unsplash.com/photo-1507842217153-e212234b6605?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')">
-          <div class="carousel-caption d-none d-md-block text-start" style="bottom: 100px; left: 10%;">
-            <h1 class="display-3 fw-bold">Bienvenue à SmartLib</h1>
-            <p class="lead fs-4">Gérez vos emprunts et découvrez des milliers de livres.</p>
-          </div>
-        </div>
-        <!-- Slide 2 -->
-        <div class="carousel-item" style="background-image: url('https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')">
-          <div class="carousel-caption d-none d-md-block text-start" style="bottom: 100px; left: 10%;">
-            <h1 class="display-3 fw-bold">Un espace de savoir</h1>
-            <p class="lead fs-4">Accédez à une collection riche et variée.</p>
-          </div>
-        </div>
-      </div>
+    <!-- Welcome Text Left -->
+    <div class="welcome-text">
+        <h1 class="display-3 fw-bold">Bienvenue sur SmartLib</h1>
+        <p class="lead fs-4">Votre portail de gestion de bibliothèque intelligent. Empruntez, lisez et découvrez de nouveaux horizons.</p>
     </div>
 
     <!-- Login Form Overlay -->
